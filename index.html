@@ -118,7 +118,6 @@
         <div id="CV"><div id="viz"></div></div>
     </div>
     <div id="sidebar">
-        <button class="fullscreen-btn" onclick="toggleFullscreen('sidebar')">切换全屏</button>
         <br>
         <br>
         <h3>节点浏览器</h3>
@@ -261,13 +260,6 @@
             if (!sidebar.classList.contains('show')) {
                 sidebar.classList.add('show');
             }
-            
-            // 隐藏其他sidebar
-            ['sidebar', 'sidebar2', 'sidebar3'].forEach(id => {
-                if (id !== sidebarId) {
-                    document.getElementById(id).classList.remove('show');
-                }
-            });
         }
     </script>
 </body>
