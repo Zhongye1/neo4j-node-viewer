@@ -1,4 +1,4 @@
-"# neo4j-node-viewer" 
+**"# neo4j-node-viewer" **
 
 ![](https://free-img.400040.xyz/4/2025/03/16/67d6e62979d3f.png)
 
