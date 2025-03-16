@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neo4j 节点浏览器</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #viz {
+            flex: 3;
+            height: calc(100vh - 50px);
+        }
+        #sidebar {
+            flex: 1;
+            background: #f5f5f5;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #ddd;
+        }
+        #footer {
+            height: 50px;
+            background: #333;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .info-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .query-btn {
+            background: #4ECDC4;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .node-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .node-table th, .node-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        .node-table th {
+            background-color: #4ECDC4;
+            color: white;
+        }
+        .pubkey {
+            cursor: help;
+            color: #666;
+            font-family: monospace;
+        }
+        .details-panel {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+    </style>
+    <script src="https://unpkg.com/neovis.js@2.0.2"></script>
+    <script src="https://unpkg.com/neo4j-driver"></script>
+</head>
+<body onload="init()">
+    <div id="container">
+        <div id="viz"></div>
+        <div id="sidebar">
+            <h3>节点浏览器</h3>
+            <div class="search-box">
+                <input type="text" id="nodeQuery" placeholder="输入节点地址">
+                <button class="query-btn" onclick="fetchNodeDetails()">搜索</button>
+            </div>
+            <div id="node-details" class="details-panel"></div>
+            <h3>连接信息</h3>
+            <div id="sidebar-content"></div>
+        </div>
+    </div>
+    <div id="footer">
+        <button class="query-btn" onclick="runDegreeQuery()">查找最高度数节点</button>
+        <span>Neo4j 网络分析工具(neovis版)</span>
+    </div>
+
+    <script type="text/javascript">
+        let neoViz;
+        let driver;
+        let lastHighlightedNode = null; // 添加变量跟踪当前高亮的节点
+        const customColors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEEAD", "#D4A5A5", "#9DC183", "#FF9F1C", "#9B59B6", "#34495E"];
+
+        function init() {
+            initDriver();
+            draw();
+        }
+
+        function initDriver() {
+            driver = neo4j.driver(
+                "bolt://localhost:7687",
+                neo4j.auth.basic("neo4j", "password") // 替换为实际密码
+            );
+        }
+
+        async function fetchNodeDetails() {
+            const input = document.getElementById('nodeQuery').value.trim();
+            if (!input) return;
+
+            const session = driver.session();
+            try {
+                const isID = input.startsWith('765b'); // 根据实际ID特征调整
+                const cypher = isID 
+                    ? `MATCH (n:Node {id: $input}) RETURN n`
+                    : `MATCH (n:Node {address: $input}) RETURN n`;
+
+                const result = await session.run(cypher, { input });
+                
+                if (result.records.length === 0) {
+                    showNodeDetails("节点未找到");
+                    return;
+                }
+
+                const node = result.records[0].get('n').properties;
+                showNodeDetails(formatNodeDetails(node));
+                highlightNode(node.id); // 高亮节点
+                
+            } catch (error) {
+                console.error("查询失败:", error);
+                showNodeDetails(`错误: ${error.message}`);
+            } finally {
+                session.close();
+            }
+        }
+
+        function formatNodeDetails(node) {
+            return `
+            <table class="node-table">
+                <tr><th>属性</th><th>值</th></tr>
+                <tr><td>id</td><td>${node.id}</td></tr>
+                <tr><td>地址</td><td>${node.address || "N/A"}</td></tr>
+                <tr><td>TCP端口</td><td>${node.tcp_port || "N/A"}</td></tr>
+                <tr><td>UDP端口</td><td>${node.udp_port || "N/A"}</td></tr>
+                <tr><td>公钥</td><td>${formatPubkey(node.pubkey)}</td></tr>
+                <tr><td>时间戳</td><td>${new Date(node.timestamp * 1000).toLocaleString()}</td></tr>
+                
+            </table>
+            `;
+        }
+
+        function formatPubkey(pubkey) {
+            if (!pubkey) return "N/A";
+            return `<span class="pubkey" title="${pubkey}">${pubkey.substring(0, 24)}...</span>`;
+        }
+
+        function showNodeDetails(content) {
+            document.getElementById('node-details').innerHTML = 
+                `<div class="info-item">${content}</div>`;
+        }
+
+        
+
+        async function runDegreeQuery() {
+            const session = driver.session();
+            try {
+                const result = await session.run(
+                    `MATCH (n:Node)
+                    WITH n, COUNT{ (n)-[:NEIGHBOR]-() } AS degree 
+                    WHERE degree > 0  // 排除孤立节点[3](@ref)
+                    RETURN n.id AS nodeId, 
+                            n.address AS address,
+                            degree
+                    ORDER BY degree DESC
+                    LIMIT 1`
+                );
+                
+                if (result.records.length > 0) {
+                    const record = result.records[0];
+                    updateSidebar(
+                        `最高度数节点:<br>
+                        ID: ${record.get('nodeId')}<br>
+                        地址: ${record.get('address')}<br>
+                        连接数: ${record.get('degree')}`
+                    );
+                } else {
+                    updateSidebar("未找到符合条件的节点");
+                }
+            } catch (error) {
+                console.error("查询执行失败:", error);
+                updateSidebar("节点度数查询异常");
+            } finally {
+                await session.close();
+            }
+        }
+
+        function updateSidebar(content) {
+            const sidebar = document.getElementById('sidebar-content');
+            sidebar.innerHTML = `<div class="info-item">${content}</div>` + sidebar.innerHTML;
+        }
+
+        function draw() {
+            const config = {
+                containerId: "viz",
+                neo4j: { 
+                    serverUrl: "bolt://localhost:7687",
+                    serverUser: "neo4j",
+                    serverPassword: "password" // 替换为实际密码
+                },
+                labels: {
+                    Node: {
+                        label: "address",       // 主标签显示IP地址[1](@ref)
+                        value: "tcp_port",      // 次要标签展示TCP端口号[1](@ref)
+                        group: "id",            // 按节点ID进行分组着色[1](@ref)
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            function: {
+                                title: (node) => {  // 自定义悬浮框内容
+                                    const props = node?.properties || {};
+                                    return `节点属性：
+                                        "id": ${props.id}
+                                        "address"(地址): ${props.address || "N/A"}
+                                        "tcp_port"(TCP端口): ${props.tcp_port || "N/A"}
+                                        "udp_port"(UDP端口): ${props.udp_port || "N/A"}
+                                        "pubkey"(公钥): ${props.pubkey ? props.pubkey.substring(0, 64) + "..." : "N/A"}
+                                        "timestamp"(时间戳): ${new Date(props.timestamp * 1000).toLocaleString()} 
+                                    `; 
+                                },
+                                shape: () => "circle",  // 固定圆形节点形状[1](@ref)
+                                color: (node) => {
+                                    const colorPalette = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEEAD"];
+                                    const hash = node.properties.id.split("").reduce((a,b)=>(a<<5)-a+b.charCodeAt(0),0);
+                                    return colorPalette[Math.abs(hash) % colorPalette.length];
+                                }
+                            }
+                        }
+                    }
+                },
+                relationships: {
+                    "NEIGHBOR": {
+                        thickness: "score", // 关系线
+                        caption: false, // 关系标签
+                        color: () => "#808080" // 关系线颜色
+                    }
+                },
+                visConfig: {
+                    physics: {
+                        stabilization: true, // 启用物理模拟
+                        barnesHut: {
+                            gravitationalConstant: -91000, // 斥力强度
+                            springLength: 200, // 连接线长度
+                            springConstant: 0.02 // 弹性系数
+                        }
+                    },
+                    interaction: {
+                        hover: true, // 启用悬停效果
+                        tooltipDelay: 200 // 悬停提示延迟
+                    }
+                },
+                arrows: true, // 显示关系箭头
+                hierarchical: false, // 禁用分层布局
+                initialCypher: "MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100" // 初始查询
+            };
+
+            neoViz = new NeoVis.default(config);
+            neoViz.render();
+            
+            // 添加完成事件监听器
+            neoViz.registerOnEvent("completed", () => {
+                console.log("图形渲染完成");
+            });
+        }
+
+        function resetHighlight() {
+            try {
+                if (lastHighlightedNode) {
+                    lastHighlightedNode.setOptions({ 
+                        color: { 
+                            background: lastHighlightedNode.originalColor,
+                            border: undefined
+                        } 
+                    });
+                    lastHighlightedNode = null;
+                }
+            } catch (error) {
+                console.error("重置高亮失败:", error);
+                lastHighlightedNode = null;
+            }
+        }
+
+        function highlightNode(nodeId) {
+            // 检查neoViz和network是否已初始化
+            if (!neoViz || !neoViz._network) {
+                console.warn("网络视图尚未完全加载，请稍后重试");
+                return;
+            }
+
+            try {
+                resetHighlight();
+                const nodes = neoViz._network.body.nodes;
+                let targetNode = null;
+                
+                // 查找目标节点
+                for (let key in nodes) {
+                    if (nodes[key].options.id === nodeId) {
+                        targetNode = nodes[key];
+                        break;
+                    }
+                }
+
+                if (targetNode) {
+                    lastHighlightedNode = targetNode;
+                    // 存储原始颜色
+                    lastHighlightedNode.originalColor = targetNode.options.color 
+                        ? targetNode.options.color.background 
+                        : customColors[0];
+                    // 设置高亮颜色
+                    targetNode.setOptions({ 
+                        color: { 
+                            background: '#FFFF00',
+                            border: '#FFA500'
+                        } 
+                    });
+                } else {
+                    console.warn("未找到指定节点:", nodeId);
+                }
+            } catch (error) {
+                console.error("节点高亮失败:", error);
+            }
+        }
+    </script>
+</body>
+</html>

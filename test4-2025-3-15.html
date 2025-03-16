@@ -1,0 +1,224 @@
+<head>
+    <title>Neo4j 节点浏览器</title>
+    <script src="./js/neovis.js"></script>
+    <script src="./js/neo4j-web.js"></script>
+    <script src="./js/function.js"></script>
+    <script src="./js/CenteralQuery.js"></script>
+    <script src="./js/console.js"></script>
+    <link rel="stylesheet" type="text/css" href="./css/base.css">
+    <style>
+        #sidebar,#sidebar2,#sidebar3 {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 40px;
+            width: 300px;
+            background-color: #f4f4f4;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateX(-100%);
+        }
+        #sidebar2 {
+            width: 40%;
+            font-size: 10px;
+        }
+        #sidebar3 {
+            left: auto;
+            right: 0;
+            height: 90%;
+            transform: translateX(100%);
+            border: 2px solid #4788ff; 
+            overflow: hidden;
+            resize: horizontal;
+            max-width: 1200px;
+        }
+        #sidebar.show, #sidebar2.show, #sidebar3.show {
+            transform: translateX(0);
+        }
+        #container {
+            margin-left: 250px;
+            transition: margin-left 0.3s ease;
+        }
+        #container.full-width {
+            margin-left: 0;
+        }
+        #toggle-btn {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 1000;
+        }
+        #toggle-btn2 {
+            position: fixed;
+            left: 126px;
+            top: 10px;
+            z-index: 1000;
+        }
+        #toggle-btn3 {
+            position: fixed;
+            right: 10px;
+            top: 10px;
+            z-index: 1000;
+        }
+        #CV {
+            width: 1200px;
+            height: 100vh;
+            position: relative;
+        }
+        #sidebar-content {
+            margin-top: 10px;
+        }
+        #centrality-info {
+            margin: 10px !important;
+        }
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            top: 90%;
+            height: 30px;
+            width: 200px;
+            background-color: #98e2ff;
+            cursor: ew-resize;
+        }
+
+        .resize-handle:hover {
+            background-color: #abc4ff;
+        }
+    </style>
+</head>
+<body onload="init()">
+    <button id="toggle-btn" class="query-btn" onclick="toggleSidebar()">基本信息</button>
+    <button id="toggle-btn2" class="query-btn" onclick="toggleSidebar2()">中心度信息</button>
+    <button id="toggle-btn3" class="query-btn" onclick="toggleSidebar3()">地图视图</button>
+    <div id="container" class="full-width">
+        <div id="CV"><div id="viz"></div></div>
+    </div>
+    <div id="sidebar">
+        <br>
+        <br>
+        <h3>节点浏览器</h3>
+        <div class="search-box">
+            <input type="text" id="nodeQuery" placeholder="输入节点地址">
+            <button class="query-btn" onclick="fetchNodeDetails()">搜索</button>
+        </div>
+        <div id="node-details" class="details-panel"></div>
+        <div class="color-legend">
+            <h4>节点度数图例</h4>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #D3F3FD"></div>
+                <span>1-20</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #99E4FA"></div>
+                <span>21-40</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #99C3FA"></div>
+                <span>41-60</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background-color: #FAA6E6"></div>
+                <span>61-80</span>
+            </div>
+        </div>
+        <button class="query-btn" onclick="runDegreeQuery()">查找最高度数节点</button><br>
+        <div id="sidebar-content"></div>
+    </div>
+
+
+    <div id="sidebar2">
+        <br>
+        <br>
+        <div class="centrality-info">
+            <div id="centrality-info">
+                <br>
+            <h3>中心度计算</h3>
+            <p>这里分别计算PageRank、度中心性、亲密中心性、介数中心性的前十名</p>
+            <button class="query-btn" onclick="runCentralityQuery()">开始中心度计算</button>
+            </div>
+        </div>
+        
+    </div>
+
+    <div id="sidebar3">
+        <div class="resize-handle" id="sidebar3-handle">按住拖拽视图大小</div>
+        <br>
+        <br>
+        <iframe id="map" src="http://172.22.121.4:8080/map.html" style="width: 100%; height: 95vh; border: none;"></iframe>
+    </div>
+
+    <div id="footer">
+        <span>Neo4j 网络分析工具&nbsp;&nbsp;&nbsp;&nbsp;  当前数据库：bolt://172.22.121.4:7687</span>
+    </div>
+    <script>
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var sidebar2 = document.getElementById('sidebar2');
+            var container = document.getElementById('container');
+            if (sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                container.classList.add('full-width');
+            } else {
+                sidebar.classList.add('show');
+                sidebar2.classList.remove('show');
+                container.classList.remove('full-width');
+            }
+        }
+
+        function toggleSidebar2() {
+            var sidebar = document.getElementById('sidebar');
+            var sidebar2 = document.getElementById('sidebar2');
+            var container = document.getElementById('container');
+            if (sidebar2.classList.contains('show')) {
+                sidebar2.classList.remove('show');
+                container.classList.add('full-width');
+            } else {
+                sidebar2.classList.add('show');
+                sidebar.classList.remove('show');
+                container.classList.remove('full-width');
+            }
+        }
+
+        function toggleSidebar3() {
+            var sidebar = document.getElementById('sidebar');
+            var sidebar2 = document.getElementById('sidebar2');
+            var sidebar3 = document.getElementById('sidebar3');
+            if (sidebar3.classList.contains('show')) {
+                sidebar3.classList.remove('show');
+            } else {
+                sidebar3.classList.add('show');
+                
+            }
+        }
+
+        // 添加拖拽功能
+        const resizeHandle = document.getElementById('sidebar3-handle');
+        const sidebar3 = document.getElementById('sidebar3');
+        let isResizing = false;
+        let startX, startWidth;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.pageX;
+            startWidth = parseInt(getComputedStyle(sidebar3).width, 10);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            
+            const width = startWidth - (e.pageX - startX);
+            if (width > 300 && width < window.innerWidth * 0.8) {
+                sidebar3.style.width = `${width}px`;
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', stopResize);
+        }
+    </script>
+</body>
+</html>

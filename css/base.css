@@ -1,0 +1,233 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+}
+#container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+#viz {
+    flex: 3;
+    height: calc(100vh - 50px);
+    width: 1200px !important; 
+}
+#sidebar {
+    flex: 1;
+    background: #f5f5f5;
+    padding: 20px;
+    overflow-y: auto;
+    border-left: 1px solid #ddd;
+}
+#footer {
+    height: 50px;
+    background: #333;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 3;
+}
+.info-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    word-wrap: break-word;    /* 允许长单词换行 */
+    word-break: break-all;    /* 更激进的断词策略 */
+    white-space: pre-wrap;    /* 保留空白但允许换行 */
+}
+.query-btn {
+  /* 基础样式 */
+  position: relative;
+  color: white;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  /* 渐变背景 */
+  background: linear-gradient(
+    135deg,
+    rgba(78, 205, 196, 1) 0%,
+    rgba(69, 183, 209, 1) 100%
+  );
+  
+  /* 立体阴影 */
+  box-shadow: 
+    0 2px 4px rgba(78, 205, 196, 0.2),
+    0 4px 8px -2px rgba(78, 205, 196, 0.15);
+  
+  /* 伪元素光效 */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 6px;
+    background: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0) 50%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* 悬停状态 */
+.query-btn:hover {
+  /* 动态效果增强 */
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 8px rgba(78, 205, 196, 0.25),
+    0 8px 16px -4px rgba(78, 205, 196, 0.2);
+  
+  /* 光效激活 */
+  &::after {
+    opacity: 1;
+  }
+
+  /* 颜色微调 */
+  background: linear-gradient(
+    135deg,
+    rgba(88, 225, 216, 1) 0%,
+    rgba(79, 203, 229, 1) 100%
+  );
+}
+
+/* 点击状态 */
+.query-btn:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 1px 2px rgba(78, 205, 196, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 禁用状态 */
+.query-btn:disabled {
+  opacity: 0.6;
+  filter: saturate(0.6);
+  cursor: not-allowed;
+}
+
+.search-box {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 7px;
+}
+.search-box input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.node-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 3px;
+}
+.node-table th, .node-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 0.9em;
+}
+.node-table th {
+    background-color: #4ECDC4;
+    color: white;
+}
+.pubkey {
+    cursor: help;
+    color: #666;
+    font-family: monospace;
+}
+.details-panel {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+
+
+
+/* 颜色图例样式 */
+.color-legend {
+    margin: 17px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-legend h4 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+}
+
+.color-box {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .color-box {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+.centrality-results {
+    margin-top: 0;
+    padding: 15px;
+    background: #f4f4f4;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.centrality-results h4 {
+    margin: 15px 0 10px 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #4ECDC4;
+    padding-bottom: 5px;
+}
+
+.centrality-results .node-table {
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+.centrality-results .node-table td:first-child {
+    font-weight: bold;
+    color: #4ECDC4;
+    width: 60px;
+}
+
+.centrality-results .node-table td:last-child {
+    font-family: monospace;
+}
