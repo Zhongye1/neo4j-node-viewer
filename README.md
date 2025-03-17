@@ -1,10 +1,10 @@
-"# neo4j-node-viewer" 
+"# neo4j-node-viewer" ![lang Status](https://img.shields.io/badge/前端-HTML,CSS,JS-orange.svg)![lang Status](https://img.shields.io/badge/技术栈-Neovis，seedemu，websocket-blue.svg)![lang Status](https://img.shields.io/badge/后端-Neo4j-blue.svg)
 
 ![](https://free-img.400040.xyz/4/2025/03/16/67d6e62979d3f.png)
 
 URL:  https://zhongye1.github.io/neo4j-node-viewer/
 
-基于neovis.js的一个neo4j以太坊网络数据展示用前端
+基于neovis.js的一个neo4j以太坊网络数据展示用前端，使用传统方式开发
 
 集成网络拓扑图显示，最高度节点查询，节点信息查找
 
@@ -12,8 +12,9 @@ URL:  https://zhongye1.github.io/neo4j-node-viewer/
 
 集成seed-emulator-ETH搭载以太坊仿真器的相关页面
 
-<s>*（文档待完善，反正没人看）*</s>
+
+
+<s>*待完善*</s>
 
 
 
-<img src="https://free-img.400040.xyz/4/2025/03/16/67d6e6b3d8d5b.jpg" style="zoom:60%;" />
